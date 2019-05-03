@@ -9,6 +9,7 @@ setup(
     author_email='looooooeee@gmail.com',
     url='https://github.com/wylswz/ParallelDecoder',
     keywords=['parallel', 'generator', 'stream'],
+    description="Generator wrapper with parallel decoder",
     download_url='https://github.com/wylswz/ParallelDecoder/archive/0.2.tar.gz',
 
     classifiers=[
