@@ -1,1 +1,1 @@
-from pardec import ParallelDecoder
+from pardec.base import ParallelDecoder

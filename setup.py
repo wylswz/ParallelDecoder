@@ -2,7 +2,8 @@ from distutils.core import setup
 
 setup(
     name='pardec',
-    version='0.2',
+    packages=['pardec'],
+    version='0.5',
     license='MIT',
     author='Yunlu Wen',
     author_email='looooooeee@gmail.com',

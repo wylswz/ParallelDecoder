@@ -70,6 +70,7 @@ class ParallelDecoder:
         Keep fetching data from the generator, decode it and generate future objects
         :return:
         """
+
         while not self._stop:
             if self._stop:
                 break
@@ -82,6 +83,8 @@ class ParallelDecoder:
                 except StopIteration:
                     break
                 except RuntimeError:
+                    break
+                except TypeError:
                     break
             else:
                 time.sleep(self.cache_full_wait_time)
