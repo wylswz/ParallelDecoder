@@ -1,25 +1,27 @@
-from multiprocessing import Queue
-import threading,time, queue
-
+from multiprocessing import Queue, Value
 from concurrent.futures import ProcessPoolExecutor
+import threading, time, queue
+from pardec.MQ import QueueManager
+
 
 def default_decoder(x):
     return x
 
+
 def default_get_args(x):
     return (x,)
+
 
 class ParallelDecoder:
 
     def __init__(self,
                  generator,
-                 num_workers=4,
-                 cache_size=1000,
+                 num_workers=2,
+                 cache_size=10,
                  get_args=default_get_args,
                  decoder=default_decoder,
-                 deque_timeout=1,
-                 enque_timeout=10000,
-                 cache_full_wait_time=5
+                 deque_timeout=5,
+                 enque_timeout=10000
                  ):
         """
 
@@ -30,7 +32,6 @@ class ParallelDecoder:
         :param decoder: Convert a sample to a concrete data instance
         :param deque_timeout: Wait time of getting data out of empty queue
         :param enque_timeout: Wait time of putting data into full queue
-        :param cache_full_wait_time: The wait time of fetching new data if the queue is full
         """
 
         self._stop = False
@@ -38,32 +39,20 @@ class ParallelDecoder:
 
         self.generator = generator
         self.pool = ProcessPoolExecutor(max_workers=num_workers)
-        self.cache_size = cache_size
-        self.queue = Queue(maxsize=cache_size)
+        self.queue = QueueManager(cache_size=cache_size)
         self.decoder = decoder
         self.get_args = get_args
         self.enque_timeout = enque_timeout
         self.deque_timeout = deque_timeout
-        self.cache_full_wait_time = cache_full_wait_time
         self.temp_cache = [None for i in range(cache_size)]
         self.feeder_p = threading.Thread(target=self._feeding_queue)
         self.feeder_p.daemon = True
         self.feeder_p.start()
+        print("Launching {0} workers".format(num_workers))
 
-
-    def _queue_future(self, future):
-        """
-        Get a result from Future object and push it into the queue
-        :param future:
-        :return:
-        """
-        res = future.result()
-        try:
-            self.queue.put(res, timeout=self.enque_timeout)
-        except AssertionError:
-            pass
-        except RuntimeError:
-            pass
+    def report(self):
+        status = {}
+        status['task_queue'] = "{0}/{1}".format()
 
     def _feeding_queue(self):
         """
@@ -74,20 +63,21 @@ class ParallelDecoder:
         while not self._stop:
             if self._stop:
                 break
-            if not self.queue.full():
+            while not self.queue.full():
+                if self._stop:
+                    break
                 try:
                     sample = next(self.generator)
                     future = self.pool.submit(self.decoder,
                                               *self.get_args(sample))
-                    future.add_done_callback(self._queue_future)
+                    self.queue.add_task(future, timeout=self.enque_timeout)
                 except StopIteration:
                     break
                 except RuntimeError:
                     break
                 except TypeError:
                     break
-            else:
-                time.sleep(self.cache_full_wait_time)
+
 
     def _consuming_queue(self):
         """
@@ -100,15 +90,13 @@ class ParallelDecoder:
             raise StopIteration
         else:
             try:
-                res = self.queue.get(block=True, timeout=self.deque_timeout)
+                res = self.queue.get_result(timeout=self.deque_timeout)
                 return res
             except queue.Empty:
                 raise StopIteration
             except OSError as ose:
                 if str(ose) == "handle is closed":
                     raise StopIteration
-
-
 
     def _shutdown(self, clean_cache):
         """
@@ -120,10 +108,8 @@ class ParallelDecoder:
 
         if clean_cache:
             self._terminated = True
-            self.queue.close()
+
         self.pool.shutdown(True)
-
-
 
     def stop(self, clean_cache):
         """
@@ -141,4 +127,3 @@ class ParallelDecoder:
 
     def __next__(self):
         return self._consuming_queue()
-
