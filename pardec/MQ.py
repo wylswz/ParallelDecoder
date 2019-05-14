@@ -2,6 +2,7 @@ from multiprocessing import Queue, Value, Lock
 import threading,time, queue
 import psutil
 
+from pardec.Interfaces.MessageQueue import MemoryTaskQueue
 from concurrent.futures import Future
 
 
@@ -10,7 +11,7 @@ class TaskWrapper:
     def __init__(self, future, manager, timeout=10):
         self.future: Future = future
         self.timeout = timeout
-        self.manager: QueueManager = manager
+        self.manager: ScatteringQueueManager = manager
         self.future.add_done_callback(self.callback)
 
     def __del__(self):
@@ -22,22 +23,20 @@ class TaskWrapper:
         self.__del__()
 
 
-class QueueManager:
+class ScatteringQueueManager(MemoryTaskQueue):
     def __init__(self,
-                 cache_size):
+                 cache_size,
+                 memory_ratio=0.9):
+        super(ScatteringQueueManager, self).__init__(cache_size, memory_ratio)
         self.task_count: Queue = Queue(maxsize=cache_size)
-        self.cache_size = cache_size
         self.result_queue = Queue(maxsize=cache_size)
-        self.memory_ratio = 0.9
-
-    def has_memory(self):
-        avai = psutil.virtual_memory().available
-        total = psutil.virtual_memory().total
-        return avai/total > 1 - self.memory_ratio
 
     def full(self):
+        avai = psutil.virtual_memory().available
+        total = psutil.virtual_memory().total
+
+        mem_full = avai / total > 1 - self.memory_ratio
         task_full = self.task_count.full()
-        mem_full = not self.has_memory()
 
         return task_full or mem_full
 
@@ -53,7 +52,6 @@ class QueueManager:
         self.result_queue.put(result, block=True, timeout=timeout)
         if not self.task_count.empty():
             self.task_count.get()
-
 
     def get_result(self, timeout=10):
 

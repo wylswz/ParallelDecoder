@@ -19,5 +19,8 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3.6',
     ],
+    install_requires=[
+              'psutil',
+          ],
 
 )

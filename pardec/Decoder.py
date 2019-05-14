@@ -1,7 +1,7 @@
 from multiprocessing import Queue, Value
 from concurrent.futures import ProcessPoolExecutor
 import threading, time, queue
-from pardec.MQ import QueueManager
+from pardec.MQ import ScatteringQueueManager
 
 
 def default_decoder(x):
@@ -39,7 +39,7 @@ class ParallelDecoder:
 
         self.generator = generator
         self.pool = ProcessPoolExecutor(max_workers=num_workers)
-        self.queue = QueueManager(cache_size=cache_size)
+        self.queue = ScatteringQueueManager(cache_size=cache_size)
         self.decoder = decoder
         self.get_args = get_args
         self.enque_timeout = enque_timeout
@@ -51,8 +51,7 @@ class ParallelDecoder:
         print("Launching {0} workers".format(num_workers))
 
     def report(self):
-        status = {}
-        status['task_queue'] = "{0}/{1}".format()
+        return self.queue.report()
 
     def _feeding_queue(self):
         """

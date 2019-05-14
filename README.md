@@ -9,7 +9,7 @@ custom decoding. All you need to do is providing a generator, a decoding
 ## Example
 ```python
 import time
-from base import ParallelDecoder
+from Decoder import ParallelDecoder
 def my_decoder(x):
     time.sleep(4)
     return x
@@ -35,8 +35,8 @@ par_dec.stop(False)
     - cache_size: Size of queue
     - get_args: The function that take a sample and return a set of args
     - decoder: The function that convert a sample to a concrete piece of data
-    - deque_time: Wait time of getting data out of empty queue
-    - enque_time: Wait time of putting data into full queue
+    - deque_timeout: Wait time of getting data out of empty queue
+    - enque_timeout: Wait time of putting data into full queue
     - cache_full_wait_time: The wait time of fetching new data if the queue is full
 
 - stop()
