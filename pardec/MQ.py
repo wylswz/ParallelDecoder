@@ -1,9 +1,10 @@
-from multiprocessing import Queue, Value, Lock
-import threading,time, queue
+import queue
+from concurrent.futures import Future
+from multiprocessing import Queue
+
 import psutil
 
 from pardec.Interfaces.MessageQueue import MemoryTaskQueue
-from concurrent.futures import Future
 
 
 class TaskWrapper:
@@ -62,5 +63,3 @@ class ScatteringQueueManager(MemoryTaskQueue):
         status = {}
         status["Task Queue"] = "{0}/{1}".format(self.task_count.qsize(), self.cache_size)
         status["Result Queue"] = "{0}/{1}".format(self.result_queue.qsize(), self.cache_size)
-
-

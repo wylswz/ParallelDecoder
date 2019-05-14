@@ -1,6 +1,7 @@
-from multiprocessing import Queue, Value
+import queue
+import threading
 from concurrent.futures import ProcessPoolExecutor
-import threading, time, queue
+
 from pardec.MQ import ScatteringQueueManager
 
 
@@ -76,7 +77,6 @@ class ParallelDecoder:
                     break
                 except TypeError:
                     break
-
 
     def _consuming_queue(self):
         """
