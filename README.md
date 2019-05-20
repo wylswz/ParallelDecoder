@@ -9,7 +9,7 @@ custom decoding. All you need to do is providing a generator, a decoding
 ## Example
 ```python
 import time
-from Decoder import ParallelDecoder
+from pardec import ParallelDecoder
 def my_decoder(x):
     time.sleep(4)
     return x
