@@ -1,14 +1,14 @@
 import queue
+import threading
 from concurrent.futures import Future
 from multiprocessing import Queue
-import threading
+
 import psutil
-import time
+
 from pardec.Interfaces.MessageQueue import MemoryTaskQueue
 
 
 class ScatteringQueueManager(MemoryTaskQueue):
-
     class TaskWrapper:
 
         def __init__(self, future, manager, timeout=10):
@@ -29,7 +29,6 @@ class ScatteringQueueManager(MemoryTaskQueue):
                 pass
             self.future.cancel()
 
-
     def __init__(self,
                  cache_size,
                  memory_ratio=0.95):
@@ -38,7 +37,7 @@ class ScatteringQueueManager(MemoryTaskQueue):
         self.task_count = Queue(maxsize=cache_size)
         self.cond = threading.Condition()
         self._stop = False
-        self.supervisor_thread:threading.Thread = threading.Thread(target=self._supervisor)
+        self.supervisor_thread: threading.Thread = threading.Thread(target=self._supervisor)
         self.supervisor_thread.start()
 
     def _supervisor(self):

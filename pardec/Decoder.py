@@ -1,11 +1,11 @@
+import multiprocessing
 import queue
 import threading
 from concurrent.futures import ProcessPoolExecutor
-import concurrent
-import traceback
-import multiprocessing
-from pardec.MQ import ScatteringQueueManager
 from ctypes import c_bool
+
+from pardec.MQ import ScatteringQueueManager
+
 
 def default_decoder(x):
     return x
@@ -51,7 +51,6 @@ class ParallelDecoder:
         self.feeder_p.daemon = True
         self.feeder_p.start()
 
-
     def report(self):
         return self.queue.report()
 
@@ -79,8 +78,6 @@ class ParallelDecoder:
             except TypeError:
 
                 break
-
-
 
     def _consuming_queue(self):
         """
