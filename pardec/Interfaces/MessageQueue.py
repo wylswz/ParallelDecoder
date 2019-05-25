@@ -40,3 +40,11 @@ class MemoryTaskQueue:
         :return:
         """
         raise NotImplementedError
+
+    def stop(self):
+        """
+        This is invoked when the stop() of ParallelDecoder is invoked
+        Finish up everything here
+        :return:
+        """
+        raise NotImplementedError

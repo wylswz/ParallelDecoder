@@ -51,7 +51,6 @@ class ParallelDecoder:
         self.feeder_p.daemon = True
         self.feeder_p.start()
 
-        print("Launching {0} workers".format(num_workers))
 
     def report(self):
         return self.queue.report()
@@ -63,7 +62,6 @@ class ParallelDecoder:
         """
 
         while not self._stop.value:
-            print(self._stop.value)
             if self._stop.value:
                 break
 

@@ -105,7 +105,6 @@ class ScatteringQueueManager(MemoryTaskQueue):
     def get_result(self, timeout=10):
 
         res = self.result_queue.get(block=True, timeout=timeout)
-        print(self.report())
         if not self.task_count.empty():
             self.task_count.get()
         return res
