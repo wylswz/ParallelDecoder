@@ -1,9 +1,11 @@
 import queue
 import threading
 from concurrent.futures import ProcessPoolExecutor
-
+import concurrent
+import traceback
+import multiprocessing
 from pardec.MQ import ScatteringQueueManager
-
+from ctypes import c_bool
 
 def default_decoder(x):
     return x
@@ -21,7 +23,7 @@ class ParallelDecoder:
                  cache_size=10,
                  get_args=default_get_args,
                  decoder=default_decoder,
-                 deque_timeout=5,
+                 deque_timeout=10000,
                  enque_timeout=10000
                  ):
         """
@@ -35,8 +37,7 @@ class ParallelDecoder:
         :param enque_timeout: Wait time of putting data into full queue
         """
 
-        self._stop = False
-        self._terminated = False
+        self._stop = multiprocessing.Value(c_bool, False, lock=False)
 
         self.generator = generator
         self.pool = ProcessPoolExecutor(max_workers=num_workers)
@@ -49,6 +50,7 @@ class ParallelDecoder:
         self.feeder_p = threading.Thread(target=self._feeding_queue)
         self.feeder_p.daemon = True
         self.feeder_p.start()
+
         print("Launching {0} workers".format(num_workers))
 
     def report(self):
@@ -60,23 +62,27 @@ class ParallelDecoder:
         :return:
         """
 
-        while not self._stop:
-            if self._stop:
+        while not self._stop.value:
+            print(self._stop.value)
+            if self._stop.value:
                 break
-            while not self.queue.full():
-                if self._stop:
-                    break
-                try:
-                    sample = next(self.generator)
-                    future = self.pool.submit(self.decoder,
-                                              *self.get_args(sample))
-                    self.queue.add_task(future, timeout=self.enque_timeout)
-                except StopIteration:
-                    break
-                except RuntimeError:
-                    break
-                except TypeError:
-                    break
+
+            try:
+                sample = next(self.generator)
+                future = self.pool.submit(self.decoder,
+                                          *self.get_args(sample))
+                self.queue.add_task(future, timeout=self.enque_timeout)
+            except StopIteration:
+
+                break
+            except RuntimeError:
+
+                break
+            except TypeError:
+
+                break
+
+
 
     def _consuming_queue(self):
         """
@@ -85,7 +91,7 @@ class ParallelDecoder:
         is raised
         :return:
         """
-        if self._terminated:
+        if self._stop:
             raise StopIteration
         else:
             try:
@@ -97,29 +103,29 @@ class ParallelDecoder:
                 if str(ose) == "handle is closed":
                     raise StopIteration
 
-    def _shutdown(self, clean_cache):
+    def _shutdown(self):
         """
 
         :param clean_cache:
         :return:
         """
-        self._stop = True
-
-        if clean_cache:
-            self._terminated = True
-
+        self._stop.value = True
         self.pool.shutdown(True)
 
-    def stop(self, clean_cache):
+    def stop(self):
         """
         Start a thread to send stop signals
 
-        :param clean_cache: If true, all the unfinished futures or unfetched queue data
-            will be ignored
         :return:
         """
-        shutdown_thread = threading.Thread(target=self._shutdown, args=(clean_cache,))
-        shutdown_thread.start()
+
+        self._shutdown()
+        while True:
+            try:
+                self._consuming_queue()
+            except StopIteration:
+                break
+        self.queue.stop()
 
     def __iter__(self):
         return self
